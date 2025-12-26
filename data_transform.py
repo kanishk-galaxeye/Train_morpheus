@@ -136,7 +136,7 @@ def gamma( param=0.4, minp=10, maxp=99):
 
 
 
-def offset_crop(img: Image.Image, crop_size = 128, offset_y = 10, offset_x = 0):
+def offset_crop(img: Image.Image, crop_size = 80, offset_y = 10, offset_x = 0):
     """
     Crops a square region of size 'crop_size' centered around 
     (target_center_x, target_center_y) from a PIL Image.
@@ -170,6 +170,8 @@ def offset_crop(img: Image.Image, crop_size = 128, offset_y = 10, offset_x = 0):
         
         # Use F.crop(img, top, left, height, width)
         cropped_img = F.crop(img, top=top, left=left, height=crop_size, width=crop_size)
+        if cropped_img.size != (128,128):
+            cropped_img = cropped_img.resize((128,128))
         
         return cropped_img
     return apply_offset

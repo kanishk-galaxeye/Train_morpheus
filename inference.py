@@ -69,7 +69,7 @@ if __name__ == "__main__":
     topk = 3
     device = "cuda"
     image_type = "real"
-    weights = "checkpoint_FBH/65_fighter_bomber_helicopter_100_32_dropout0.35_weight_decay"
+    weights = "checkpoint_CBH/81_acc_0.96_HBC"
     root_dir = "bomber_figther_helicopter/val"
     subdir = os.listdir(root_dir)
     tresut = {}
