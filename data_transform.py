@@ -14,7 +14,14 @@ import cv2
 
 ## Data Transfrom 
 
+'''
 
+This file is to apply functions directly to the DataLaoder mainly for Real images 
+Contains function to do precentile Normalization, Offset Crop, Loading Uint16 images
+
+
+
+'''
 
 class RayleighMatchTensor(object):
 

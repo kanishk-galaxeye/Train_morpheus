@@ -17,7 +17,14 @@ import glob
 import ipdb
 import pdb, traceback,sys
 
+'''
+This file if for Extracting bbox from the original image and create  trainging data
 
+-----
+Main Function is :
+    train_data
+
+'''
 def polygon_to_hbb(geojson_geometry):
     """
     geojson_geometry = dict of geometry (type + coordinates)
@@ -123,88 +130,97 @@ def target_centers(image_path, json_path, hbb = True, save_dir= ""):
         i_tranform = src.transform
         out_meta = src.meta
     # targets - [('class', cx,cy)]
+        # ipdb.set_trace()
         project =Transformer.from_crs(json_crs, i_crs, always_xy = True) # transforming coordinated if crs difers
         num = 1
         for target in targets:
             subclass, geom = target
-            geom =transform(project.transform, geom)
-            patch, out_transform = mask(src , [geom], crop = True)
-            image_name_save = image_name+ '_' + str(num)+'.tif'
-            
-            if subclass == None:
-                subclass = 'Undefined'
-
-
-            save_path = os.path.join(save_dir, subclass)
-
-            os.makedirs(save_path, exist_ok = True)
-            save_image_path = os.path.join(save_path, image_name_save)
-            if hbb ==False:
-                # print("save file" ,save_image_path)
-            
-                out_meta.update({
-                    "driver": "GTiff",
-                    "height": patch.shape[1],
-                    "width": patch.shape[2],
-                    "transform": out_transform,
-                    "dtype": patch.dtype
-                    })
-                with rasterio.open(save_image_path, 'w', **out_meta) as out:
-                    out.write(patch)
-                num +=1
-            else:
-                rows = []
-                cols = []
-                if geom.geom_type == "Polygon":
-                    geometries = [geom]
-                elif geom.geom_type == "MultiPolygon":
-                    geometries = list(geom.geoms)
-                else:
-                    raise ValueError(f"Unsupported geometry type: {geom.geom_type}")
-
-                for g in geometries:
-                    for x, y in g.exterior.coords:
-                        r, c = rowcol(i_tranform, x, y)
-                        rows.append(r)
-                        cols.append(c)
-
-                # Convert polygon coordinates to pixel (row, col)
+            if geom.is_empty == False:
+                geom =transform(project.transform, geom)
+              
+                # ipdb.set_trace()
+                patch, out_transform = mask(src , [geom], crop = True)
+                image_name_save = image_name+ '_' + str(num)+'.tif'
+              
                 
+                
+                if subclass == None:
+                    subclass = 'Undefined'
 
-                # for x, y in geom.exterior.coords:
-                #     r, c = rowcol(i_tranform, x, y)
-                #     rows.append(r)
-                #     cols.append(c)
 
-                # Pixel-space horizontal bounding box
-                row_min, row_max = min(rows), max(rows)
-                col_min, col_max = min(cols), max(cols)
+                save_path = os.path.join(save_dir, subclass)
 
-                # Build raster window
-                window = Window(
-                    col_off=col_min,
-                    row_off=row_min,
-                    width=col_max - col_min,
-                    height=row_max - row_min
-                )
+                os.makedirs(save_path, exist_ok = True)
+                save_image_path = os.path.join(save_path, image_name_save)
+                if hbb ==False:
+                    # print("save file" ,save_image_path)
+                
+                    out_meta.update({
+                        "driver": "GTiff",
+                        "height": patch.shape[1],
+                        "width": patch.shape[2],
+                        "transform": out_transform,
+                        "dtype": patch.dtype
+                        })
+                    with rasterio.open(save_image_path, 'w', **out_meta) as out:
+                        out.write(patch)
+                    num +=1
+                else:
+                    rows = []
+                    cols = []
+                    if geom.geom_type == "Polygon":
+                        geometries = [geom]
+                    elif geom.geom_type == "MultiPolygon":
+                        geometries = list(geom.geoms)
+                    else:
+                        raise ValueError(f"Unsupported geometry type: {geom.geom_type}")
 
-                # Read data (NO resampling, NO NoData padding)
-                hbb_patch = src.read(window=window)
+                    for g in geometries:
+                        for x, y in g.exterior.coords:
+                            r, c = rowcol(i_tranform, x, y)
+                            rows.append(r)
+                            cols.append(c)
 
-                # Update metadata
-                out_meta.update({
-                    "driver": "GTiff",
-                    "height": hbb_patch.shape[1],
-                    "width": hbb_patch.shape[2],
-                    "transform": rasterio.windows.transform(window, i_tranform),
-                    "dtype": hbb_patch.dtype
-                })
+                    # Convert polygon coordinates to pixel (row, col)
+                    
 
-                # Save
-                with rasterio.open(save_image_path, "w", **out_meta) as out:
-                    out.write(hbb_patch)
+                    # for x, y in geom.exterior.coords:
+                    #     r, c = rowcol(i_tranform, x, y)
+                    #     rows.append(r)
+                    #     cols.append(c)
 
-                num += 1
+                    # Pixel-space horizontal bounding box
+                    row_min, row_max = min(rows), max(rows)
+                    col_min, col_max = min(cols), max(cols)
+
+                    # Build raster window
+                    window = Window(
+                        col_off=col_min,
+                        row_off=row_min,
+                        width=col_max - col_min,
+                        height=row_max - row_min
+                    )
+
+                    # Read data (NO resampling, NO NoData padding)
+                    hbb_patch = src.read(window=window)
+
+                    # Update metadata
+                    out_meta.update({
+                        "driver": "GTiff",
+                        "height": hbb_patch.shape[1],
+                        "width": hbb_patch.shape[2],
+                        "transform": rasterio.windows.transform(window, i_tranform),
+                        "dtype": hbb_patch.dtype
+                    })
+
+                    # Save
+                    with rasterio.open(save_image_path, "w", **out_meta) as out:
+                        out.write(hbb_patch)
+
+                    num += 1
+
+            else: 
+                pass 
                 #----------mycode-------
                 # minx, miny, maxx, maxy = polygon_to_hbb(geom)
                 # try:
@@ -282,12 +298,13 @@ def train_data(ann_dir , save_dir, hbb = True):
     # ipdb.set_trace()
 
     for json, tif in zip(jsons, tifs):
+
         target_centers(tif, json, save_dir = save_dir, hbb = hbb)
 
 
 if __name__ == "__main__":
 
-    save_dir = "hbbdata2"
-    ann_dir = "/media/sphere/744c0eb8-a6d5-469f-9d27-449a9eef9aa1/home/admin123/Kanishk/Kan"
+    save_dir = "hbbdata"
+    ann_dir = "/media/sphere/744c0eb8-a6d5-469f-9d27-449a9eef9aa1/home/admin123/Kanishk/Transport/Tif"
 
     train_data(ann_dir, save_dir, hbb=True)
